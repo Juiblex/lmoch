@@ -11,8 +11,6 @@ open Typed_ast
 open Flatten
 open Ident
 open Solve
-open Aez
-open Smt
 
 let usage = "usage: "^Sys.argv.(0)^" [options] file.lus main"
 
@@ -100,12 +98,6 @@ let () =
 	report_loc l;
 	eprintf "%a\n@." Typing.report e;
 	exit 1
-    | Smt.Error e -> begin match e with
-      | DuplicateTypeName s -> eprintf "duptypename %s @." (Hstring.view s)
-      | DuplicateSymb s -> eprintf "dupsymb %s @." (Hstring.view s)
-      | UnknownType s -> eprintf "unknowntype %s @." (Hstring.view s)
-      | UnknownSymb s -> eprintf "unknownsymb %s @." (Hstring.view s)
-    end
       | e ->
         eprintf "Anomaly: %s\n@." (Printexc.to_string e);
         exit 2
