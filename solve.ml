@@ -127,7 +127,7 @@ let base_case delta p k =
     if Z3.Solver.check solver [] != Z3.Solver.SATISFIABLE then false
     else begin
       Z3.Solver.add solver [Z3.Boolean.mk_implies ctx hyps goal];
-      Z3.Solver.check solver [] = Z3.Solver.SATISFIABLE
+      Z3.Solver.check solver [] = Z3.Solver.UNSATISFIABLE
     end
   in res
 
@@ -145,7 +145,7 @@ let ind_case delta p k =
     if Z3.Solver.check solver [] != Z3.Solver.SATISFIABLE then false
     else begin
       Z3.Solver.add solver [Z3.Boolean.mk_implies ctx hyps goal];
-      Z3.Solver.check solver [] = Z3.Solver.SATISFIABLE
+      Z3.Solver.check solver [] = Z3.Solver.UNSATISFIABLE
     end
   in res
 
@@ -166,7 +166,8 @@ let solve node kmax =
   let p_incr n =
     let out, _ = List.hd node.tn_output in
     let ok = Hashtbl.find funsymbs out in
-    Z3.Boolean.mk_eq ctx (Z3.Expr.mk_app ctx ok [n]) ttrue in
+    (* goal: prove that "ok = false" is UNSAT *)
+    Z3.Boolean.mk_eq ctx (Z3.Expr.mk_app ctx ok [n]) tfalse in
 
   let n = Z3.Expr.mk_app ctx (dec_fun "n" [] type_int) [] in
   let delta = delta_incr n in
