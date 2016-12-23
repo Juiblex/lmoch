@@ -14,7 +14,8 @@ type result =
 
 let (funsymbs: (Ident.t, Z3.FuncDecl.func_decl) Hashtbl.t) = Hashtbl.create 17
 
-let ctx = mk_context []
+let cfg = [("model", "true"); ("proof", "true")]
+let ctx = mk_context cfg
 let type_bool = Z3.Boolean.mk_sort ctx
 let type_int = Z3.Arithmetic.Integer.mk_sort ctx
 let type_real = Z3.Arithmetic.Real.mk_sort ctx
@@ -72,9 +73,9 @@ let rec translate_expr n e = match e.texpr_desc with
         | Op_mul | Op_mul_f ->
             Z3.Arithmetic.mk_mul ctx texprs
         | Op_div | Op_div_f -> let [t1; t2] = texprs in
-            Z3.Arithmetic.mk_div ctx  t1 t2
-        | Op_mod ->
-            failwith "modulo not implemented in Z3"
+            Z3.Arithmetic.mk_div ctx t1 t2
+        | Op_mod -> let [t1; t2] = texprs in
+            Z3.FloatingPoint.mk_rem ctx t1 t2
         | Op_not ->
             Z3.Boolean.mk_not ctx (List.hd texprs)
         | Op_and ->
@@ -111,8 +112,6 @@ let delta node n =
   Z3.Boolean.mk_and ctx formulas
 
 let n_t = Z3.Expr.mk_app ctx (dec_fun "@n" [] type_int) []
-let k_t = Z3.Expr.mk_app ctx (dec_fun "@k" [] type_int) []
-let n_k_1 = Z3.Arithmetic.mk_add ctx [n_t; k_t; one]
 
 let base_case delta p k =
   let rec make_n prop = function
@@ -123,13 +122,8 @@ let base_case delta p k =
   let solver = Z3.Solver.mk_simple_solver ctx in
   Format.printf "Trying %d-induction base case.@." k;
   Z3.Solver.add solver [hyps];
-  let res = 
-    if Z3.Solver.check solver [] != Z3.Solver.SATISFIABLE then false
-    else begin
-      Z3.Solver.add solver [Z3.Boolean.mk_implies ctx hyps goal];
-      Z3.Solver.check solver [] = Z3.Solver.UNSATISFIABLE
-    end
-  in res
+  Z3.Solver.add solver [Z3.Boolean.mk_not ctx goal];
+  Z3.Solver.check solver [] = Z3.Solver.UNSATISFIABLE
 
 let ind_case delta p k =
   let rec make_n prop = function
@@ -137,17 +131,15 @@ let ind_case delta p k =
     | k -> let n_k = Z3.Arithmetic.mk_add ctx [n_t; tconst (Cint k)] in
         (prop n_k)::(make_n prop (k-1)) in
   let hyps = Z3.Boolean.mk_and ctx ((make_n delta (k+1))@(make_n p k)) in
+  let n_k_1 = Z3.Arithmetic.mk_add ctx [n_t; tconst (Cint k); one] in
   let goal = p n_k_1 in
   Format.printf "Trying %d-induction inductive case.@." k;
   let solver = Z3.Solver.mk_simple_solver ctx in
-  Z3.Solver.add solver [hyps];
-  let res = 
-    if Z3.Solver.check solver [] != Z3.Solver.SATISFIABLE then false
-    else begin
-      Z3.Solver.add solver [Z3.Boolean.mk_implies ctx hyps goal];
-      Z3.Solver.check solver [] = Z3.Solver.UNSATISFIABLE
-    end
-  in res
+  Z3.Solver.add solver [hyps];  
+(*  List.iter (fun h -> Format.printf "%s\n@." (Z3.Expr.to_string h))
+    (Z3.Solver.get_assertions solver); *)
+  Z3.Solver.add solver [Z3.Boolean.mk_not ctx goal];
+  Z3.Solver.check solver [] = Z3.Solver.UNSATISFIABLE
 
 let induction delta p k =
   if base_case delta p k = false then Disproved
@@ -166,8 +158,7 @@ let solve node kmax =
   let p_incr n =
     let out, _ = List.hd node.tn_output in
     let ok = Hashtbl.find funsymbs out in
-    (* goal: prove that "ok = false" is UNSAT *)
-    Z3.Boolean.mk_eq ctx (Z3.Expr.mk_app ctx ok [n]) tfalse in
+    Z3.Boolean.mk_eq ctx (Z3.Expr.mk_app ctx ok [n]) ttrue in
 
   let n = Z3.Expr.mk_app ctx (dec_fun "n" [] type_int) [] in
   let delta = delta_incr n in
@@ -177,7 +168,7 @@ let solve node kmax =
   let rec try_ind k =
     if k > kmax then Failed
     else begin
-      Format.printf "trying %d\n@." k;
+      Format.printf "Trying %d-induction.@." k;
       match induction delta_incr p_incr k with
         | Proved -> Proved
         | Disproved -> Disproved
