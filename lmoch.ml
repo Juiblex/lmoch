@@ -77,8 +77,8 @@ let () =
 
     let main' = inline_node ft (List.find (fun n -> n.tn_name.name = main_node) ft) in
     let main' = flatten_node main' in
-    if !verbose then Typed_ast_printer.print_node_list_std [main'];
-    let kmax = 10 in
+    if !norm_only then Typed_ast_printer.print_node_list_std [main'];
+    let kmax = 5 in
     begin match solve main' kmax with
       | Proved -> Format.printf "TRUE@."
       | Disproved -> Format.printf "FALSE@."
