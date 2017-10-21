@@ -1,0 +1,4 @@
+node check(x: bool) returns (OK:bool);
+let
+	OK = true -> pre (true -> true);
+tel

@@ -1,0 +1,6 @@
+node check (x: bool) returns (OK: bool);
+var n1: int;
+let
+  n1 = 0 -> 1;
+  OK = n1 = 0;
+tel

@@ -1,0 +1,14 @@
+node a (a: bool) returns (b: bool);
+let
+	b = a;
+tel
+
+node c (c: bool) returns (d: bool);
+let
+	d = a(c);
+tel
+
+node check (e: bool) returns (f: bool);
+let
+	f = c(e);
+tel

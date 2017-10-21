@@ -1,0 +1,4 @@
+node check (b:bool) returns (c: bool);
+let
+	c = not b;
+tel

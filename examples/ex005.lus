@@ -1,0 +1,4 @@
+node check (a: bool) returns (b: bool);
+let
+	b = a;
+tel

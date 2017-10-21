@@ -1,0 +1,8 @@
+node check (x, y:bool) returns (ok:bool);
+var a, b, c, d, e, f, g:bool;
+let
+	(a, b) = (x, y);
+	(c, d) = (a, b) -> (x, y);
+	(e, f, g) = (a, b, c);
+	ok = a = a;
+tel

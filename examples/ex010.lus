@@ -1,0 +1,4 @@
+node check() returns (ok: bool);
+let
+	ok = true;
+tel
